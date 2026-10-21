@@ -60,11 +60,11 @@ foreach ($candidate in @(
 # ------------------------------------------------------- provider block
 
 $CoreModels = [ordered]@{
-    'deepseek-v4.1-flash-free'            = @{ name = 'FREE - DeepSeek V4.1 Flash';        ctx = 1048576; vision = $true }
-    'glm-5.3-flash-free'                  = @{ name = 'FREE - GLM 5.3 Flash';              ctx = 1048576; vision = $true }
-    'kilo-auto/free'                      = @{ name = 'FREE - Kilo Auto Free';             ctx = 256000;  vision = $false }
-    'nvidia/nemotron-3-ultra-550b-a55b:free' = @{ name = 'FREE - Kilo Nemotron 3 Ultra';    ctx = 1000000; vision = $false }
-    'combo:recommended-free'              = @{ name = 'FREE - Recommended free chain';     ctx = 1048576; vision = $false }
+    'deepseek-v4.1-flash-free'            = @{ name = 'Free DSH - DeepSeek V4.1 Flash';   ctx = 1048576; vision = $true }
+    'glm-5.3-flash-free'                  = @{ name = 'Free DSH - GLM 5.3 Flash';         ctx = 1048576; vision = $true }
+    'kilo-auto/free'                      = @{ name = 'Free DSH - Kilo Auto Free';        ctx = 256000;  vision = $false }
+    'nvidia/nemotron-3-ultra-550b-a55b:free' = @{ name = 'Free DSH - Kilo Nemotron 3 Ultra'; ctx = 1000000; vision = $false }
+    'combo:recommended-free'              = @{ name = 'Free DSH - Recommended chain';     ctx = 1048576; vision = $false }
 }
 
 function Get-ForwardKey {
@@ -102,6 +102,19 @@ function Get-Roster {
     } catch { return $null }
 }
 
+$FreeLaneNames = @{
+    'big-pickle'                 = 'Big Pickle'
+    'beam-free'                  = 'Beam 1.0'
+    'flint-40b-free'             = 'Flint 40B'
+    'mimo-v2.6-flash-free'       = 'MiMo V2.6 Flash'
+    'nemotron-3.5-super-vl-free' = 'Nemotron 3.5 Super VL'
+    'nemotron-3.5-lightning-free' = 'Nemotron 3.5 Lightning'
+    'longcat-2.5-preview-free'   = 'LongCat 2.5 Preview'
+    'deepseek-v4.1-flash-free'   = 'DeepSeek V4.1 Flash'
+    'glm-5.3-flash-free'         = 'GLM 5.3 Flash'
+    'minimax-m3.1-flash-free'    = 'MiniMax M3.1 Flash'
+}
+
 function Get-FullRosterModels {
     param([int]$PortNumber)
     # authoritative free roster: the plugin catalog's own lanes, intersected with what the port serves now
@@ -110,12 +123,15 @@ function Get-FullRosterModels {
         $catalog = Get-Content -LiteralPath $CatalogPath -Raw | ConvertFrom-Json
         foreach ($entry in $catalog.entries) {
             $id = if ($entry -is [string]) { $entry } else { [string]$entry.id }
-            if ($id) { $result[$id] = @{ name = "FREE - $id"; ctx = 1048576; vision = $false } }
+            if ($id) {
+                $nice = if ($FreeLaneNames.ContainsKey($id)) { $FreeLaneNames[$id] } else { $id }
+                $result[$id] = @{ name = "Free DSH - $nice"; ctx = 1048576; vision = $false }
+            }
         }
         foreach ($row in $catalog.kiloRows) {
             if ($row.id) {
                 $result[[string]$row.id] = @{
-                    name   = "FREE - $([string]$row.name)"
+                    name   = "Free DSH - $([string]$row.name)"
                     ctx    = if ($row.contextWindow) { [int]$row.contextWindow } else { 131072 }
                     vision = ($row.vision -eq $true)
                 }
@@ -129,7 +145,7 @@ function Get-FullRosterModels {
             $id = [string]$m.id
             $live[$id] = $m
             if ($id -like 'combo:*') {
-                if (-not $result.Contains($id)) { $result[$id] = @{ name = 'FREE - Recommended free chain'; ctx = 1048576; vision = $false } }
+                if (-not $result.Contains($id)) { $result[$id] = @{ name = 'Free DSH - Recommended chain'; ctx = 1048576; vision = $false } }
             } elseif ($result.Contains($id)) {
                 if ($m.context_window) { $result[$id].ctx = [int]$m.context_window }
             }
@@ -147,7 +163,7 @@ function New-ProviderBlock {
     $p = $Indent
     $out = @()
     $out += $p + '"dsh-free": {'
-    $out += $p + '  "name": "FREE - DSH Our Free Model",'
+    $out += $p + '  "name": "Free DSH",'
     $out += $p + '  "env": ["DSH_OFM_API_KEY"],'
     $out += $p + '  "package": "@opencode/ai/providers/openai-compatible",'
     if ($ApiKey -ne '') {
@@ -254,6 +270,43 @@ $T3Pins = @(
     'dsh-free/nvidia/nemotron-3-ultra-550b-a55b:free',
     'dsh-free/combo:recommended-free'
 )
+
+# opencode's own favourites, shown at the top of the model selector
+$OpencodeState = Join-Path $HOME '.local\state\opencode\model.json'
+$OpencodePins = @(
+    'deepseek-v4.1-flash-free',
+    'glm-5.3-flash-free',
+    'kilo-auto/free',
+    'nvidia/nemotron-3-ultra-550b-a55b:free',
+    'combo:recommended-free'
+)
+
+function Set-OpencodeFavorites {
+    param([switch]$Remove)
+    if (-not (Test-Path -LiteralPath $OpencodeState)) { return 'absent' }
+    $json = Get-Content -LiteralPath $OpencodeState -Raw | ConvertFrom-Json
+    $fav = @()
+    if ($json.PSObject.Properties.Name -contains 'favorite') { $fav = @($json.favorite) }
+    if ($Remove) {
+        $kept = @($fav | Where-Object { $_.providerID -ne 'dsh-free' })
+        if ($kept.Count -eq $fav.Count) { return 'absent' }
+        $json | Add-Member -NotePropertyName favorite -NotePropertyValue $kept -Force
+    } else {
+        $have = @{}
+        foreach ($f in $fav) { $have["$($f.providerID)|$($f.modelID)"] = $true }
+        $add = @()
+        foreach ($pin in $OpencodePins) {
+            if (-not $have.ContainsKey("dsh-free|$pin")) {
+                $add += [pscustomobject]@{ providerID = 'dsh-free'; modelID = $pin }
+            }
+        }
+        if ($add.Count -eq 0) { return 'present' }
+        $json | Add-Member -NotePropertyName favorite -NotePropertyValue (@($add) + $fav) -Force
+    }
+    Backup -Path $OpencodeState | Out-Null
+    [System.IO.File]::WriteAllText($OpencodeState, ($json | ConvertTo-Json -Depth 20 -Compress), (New-Object System.Text.UTF8Encoding($false)))
+    return 'updated'
+}
 
 function Set-T3Favorites {
     param([switch]$Remove)
@@ -424,7 +477,13 @@ function Invoke-Install {
         Warn 'no forward key yet: start DSH Desktop once, then run this installer again'
     }
 
-    Step '5/5 T3 favourites'
+    Step '5/5 favourites'
+    $oc = Set-OpencodeFavorites
+    switch ($oc) {
+        'updated' { Ok 'free models pinned to the top of the opencode model selector' }
+        'present' { Ok 'opencode favourites already pinned' }
+        'absent'  { Warn 'opencode state file not found, skipped' }
+    }
     $t3 = Set-T3Favorites
     switch ($t3) {
         'updated'       { Ok 'free ids pinned to the top of T3 favourites' }
@@ -435,8 +494,8 @@ function Invoke-Install {
 
     Say ''
     Say 'Done. Restart opencode (and T3 if running). The picker shows:'
-    Say '  group  FREE - DSH Our Free Model'
-    Say '  model  FREE - DeepSeek V4.1 Flash   (id dsh-free/deepseek-v4.1-flash-free)'
+    Say '  group  Free DSH'
+    Say '  model  Free DSH - DeepSeek V4.1 Flash   (id dsh-free/deepseek-v4.1-flash-free)'
     Say ''
     Say 'Baseline check:  install.ps1 -Check'
 }
@@ -462,7 +521,12 @@ function Invoke-Uninstall {
         Ok 'DSH_OFM_API_KEY was not set'
     }
 
-    Step '3/4 T3 favourites'
+    Step '3/4 favourites'
+    $oc = Set-OpencodeFavorites -Remove
+    switch ($oc) {
+        'updated' { Ok 'opencode favourites unpinned' }
+        'absent'  { Ok 'nothing to remove' }
+    }
     $t3 = Set-T3Favorites -Remove
     switch ($t3) {
         'updated'      { Ok 'free ids unpinned' }

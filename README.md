@@ -47,7 +47,7 @@ What it does, in order:
 4. Reads the plugin's minted forward key and puts it where it is needed: inline in the `dsh-free` provider settings (so opencode resolves it without depending on the process environment) and as the user environment variable `DSH_OFM_API_KEY` (so Codex and shell tools can use it). The key is never committed to this repo and never printed by the script.
 5. Pins the free ids to the top of T3's model favourites if T3 is installed (backup kept).
 
-Then: **restart opencode** (and T3 if it is running). The picker shows a group `FREE - DSH Our Free Model` with entries named `FREE - DeepSeek V4.1 Flash`, `FREE - GLM 5.3 Flash`, `FREE - Kilo Auto Free`, and so on.
+Then: **restart opencode** (and T3 if it is running). The picker shows a group `Free DSH` with entries named `Free DSH - DeepSeek V4.1 Flash`, `Free DSH - GLM 5.3 Flash`, `Free DSH - Kilo Auto Free`, and so on.
 
 If step 4 says the key is missing, start DSH Desktop once (the plugin mints the key on boot) and re-run the installer.
 
@@ -95,7 +95,7 @@ Restart opencode and you get `deepseek.search` and `deepseek.fetch`. It reads `D
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Model missing from the picker | opencode started before the provider/env existed | restart opencode; `opencode models \| findstr dsh-free` shows the truth |
+| Model missing from the picker | the window caches its model list; the service may already serve the models | quit the app completely and reopen it (a config reload alone does not refresh the window) |
 | `opencode models` empty right after `opencode reload` | the service rebuilds its model snapshot | wait a few seconds and ask again |
 | `401 missing or invalid API key` | `DSH_OFM_API_KEY` not in the process environment | restart the app that makes the request, or inline `"apiKey"` in the provider settings |
 | `503 the forward listener is switched off` | plugin's Local forward is off | `install.ps1` again, or toggle it in DSH > Settings > Our Free Model |

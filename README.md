@@ -96,6 +96,7 @@ Restart opencode and you get `deepseek.search` and `deepseek.fetch`. It reads `D
 | Symptom | Cause | Fix |
 |---|---|---|
 | Model missing from the picker | opencode started before the provider/env existed | restart opencode; `opencode models \| findstr dsh-free` shows the truth |
+| `opencode models` empty right after `opencode reload` | the service rebuilds its model snapshot | wait a few seconds and ask again |
 | `401 missing or invalid API key` | `DSH_OFM_API_KEY` not in the process environment | restart the app that makes the request, or inline `"apiKey"` in the provider settings |
 | `503 the forward listener is switched off` | plugin's Local forward is off | `install.ps1` again, or toggle it in DSH > Settings > Our Free Model |
 | `429 RATE_LIMIT` | upstream free tier is busy from your IP | retry later, or use a Kilo id from the same roster |

@@ -124,13 +124,19 @@ function Get-FullRosterModels {
     }
     $roster = Get-Roster -PortNumber $PortNumber
     if ($roster) {
+        $live = @{}
         foreach ($m in $roster.data) {
             $id = [string]$m.id
+            $live[$id] = $m
             if ($id -like 'combo:*') {
                 if (-not $result.Contains($id)) { $result[$id] = @{ name = 'FREE - Recommended free chain'; ctx = 1048576; vision = $false } }
             } elseif ($result.Contains($id)) {
                 if ($m.context_window) { $result[$id].ctx = [int]$m.context_window }
             }
+        }
+        # drop catalog ids the port does not serve right now (e.g. a model upstream refuses to route)
+        foreach ($id in @($result.Keys)) {
+            if (-not $live.ContainsKey($id)) { $result.Remove($id) }
         }
     }
     return $result

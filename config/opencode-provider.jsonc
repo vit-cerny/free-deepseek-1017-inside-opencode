@@ -1,0 +1,43 @@
+// opencode provider for the dsh-our-free-model local port.
+// install.ps1 writes this block for you. Paste it by hand only if the script says so:
+// put it as the first entry inside the top-level "providers" object of
+// ~/.config/opencode/opencode.jsonc, keep the trailing comma, and set
+// DSH_OFM_API_KEY to the forwardKey from ~/.dsh/our-free-model/settings.json.
+    "dsh-free": {
+      "name": "FREE - DSH Our Free Model",
+      "env": ["DSH_OFM_API_KEY"],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {"baseURL": "http://127.0.0.1:18899/v1", "apiKey": "<forwardKey>"},
+      "models": {
+        "deepseek-v4.1-flash-free": {
+          "name": "FREE - DeepSeek V4.1 Flash",
+          "modelID": "deepseek-v4.1-flash-free",
+          "capabilities": {"tools": true, "input": ["text", "image"], "output": ["text"]},
+          "limit": {"context": 1048576, "output": 32768}
+        },
+        "glm-5.3-flash-free": {
+          "name": "FREE - GLM 5.3 Flash",
+          "modelID": "glm-5.3-flash-free",
+          "capabilities": {"tools": true, "input": ["text", "image"], "output": ["text"]},
+          "limit": {"context": 1048576, "output": 32768}
+        },
+        "kilo-auto/free": {
+          "name": "FREE - Kilo Auto Free",
+          "modelID": "kilo-auto/free",
+          "capabilities": {"tools": true, "input": ["text"], "output": ["text"]},
+          "limit": {"context": 256000, "output": 32768}
+        },
+        "nvidia/nemotron-3-ultra-550b-a55b:free": {
+          "name": "FREE - Kilo Nemotron 3 Ultra",
+          "modelID": "nvidia/nemotron-3-ultra-550b-a55b:free",
+          "capabilities": {"tools": true, "input": ["text"], "output": ["text"]},
+          "limit": {"context": 1000000, "output": 32768}
+        },
+        "combo:recommended-free": {
+          "name": "FREE - Recommended free chain",
+          "modelID": "combo:recommended-free",
+          "capabilities": {"tools": true, "input": ["text"], "output": ["text"]},
+          "limit": {"context": 1048576, "output": 32768}
+        }
+      }
+    },

@@ -1,0 +1,6 @@
+*.bak-ofm-*
+*.bak-*
+node_modules/
+deepseek-key.txt
+*.log
+.DS_Store
